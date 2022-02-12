@@ -33,4 +33,4 @@ Then, excute the following command.
 . ./demultiplex_inner_index.sh ${SEQ_DIR} ${SEQ_FILE_R1} ${SEQ_FILE_R2} ${SAMPLE_DATA}
 ```
 
-By default, demultiplexed FASTQ files are in `demultiplex_Out` folder. The output folder name may be changed by specifying a fifth argument.
+By default, demultiplexed FASTQ files will be in `demultiplex_Out` folder. The name of the output folder may be changed by specifying a fifth argument.
