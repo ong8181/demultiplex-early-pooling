@@ -96,7 +96,7 @@ function demultiplex_inner_index () {
   echo -e "(This step may take time...)\n"
   for file in *_common_ID.txt; do
     seqkit grep --quiet -f ${file} ../../${SEQ_DIR}/${SEQ_FILE_R1} | seqkit subseq -r 9:-1 | gzip -c > ../04_Out/${file%_common_ID.txt}_R1.fastq.gz
-    seqkit grep --quiet -f ${file} ../../${SEQ_DIR}/${SEQ_FILE_R1} | seqkit subseq -r 9:-1 | gzip -c > ../04_Out/${file%_common_ID.txt}_R2.fastq.gz
+    seqkit grep --quiet -f ${file} ../../${SEQ_DIR}/${SEQ_FILE_R2} | seqkit subseq -r 9:-1 | gzip -c > ../04_Out/${file%_common_ID.txt}_R2.fastq.gz
   done
   
 
