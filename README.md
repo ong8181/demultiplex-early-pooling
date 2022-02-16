@@ -27,7 +27,7 @@ The sample data file should contain three columns, sample IDs, forward read indi
 <img src="sampledata_structure/sampledata_structure.png" width="300px">
 
 
-Then, excute the following command.
+Then, execute the following command.
 ```
 # Perform demultiplexing
 . ./demultiplex_inner_index.sh ${SEQ_DIR} ${SEQ_FILE_R1} ${SEQ_FILE_R2} ${SAMPLE_DATA}
