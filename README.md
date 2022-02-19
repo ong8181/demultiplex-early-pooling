@@ -8,17 +8,22 @@ See LICENSE.
 
 ## Requirements
 - seqkit (https://bioinf.shenwei.me/seqkit/)
+- fastp (https://github.com/OpenGene/fastp/)
 - The script is for Linux and macOS. Not for Windows.
 
 ## Quick use
-First, specify the sequence data folder (`SEQ_DIR`), forward read file (`SEQ_FILE_R1`), reverse read file (`SEQ_FILE_R2`), and sample data (`SAMPLE_DATA`).
+First, specify the sequence mode (`SEQ_MODE`), output folder (`OUTPUT_DIR`), sequence data folder (`SEQ_DIR`), forward read file (`SEQ_FILE_R1`), reverse read file (`SEQ_FILE_R2`), and sample data (`SAMPLE_DATA`).
+
+`SEQ_MODE` should be either `PE_DualID`, `PE_SingleID`, `SE_DualID`, or `SE_SingleID`.
 
 ```
 # Set parameters
+SEQ_MODE=PE_DualID
+SAMPLE_DATA=sampledata/index_info.csv
+OUTPUT_DIR=demultiplexOut
 SEQ_DIR=seqdata
 SEQ_FILE_R1=sample_fastq_R1.fastq.gz
 SEQ_FILE_R2=sample_fastq_R2.fastq.gz
-SAMPLE_DATA=sampledata/index_info.csv
 ```
 
 The sample data file should contain three columns, sample IDs, forward read indices, and reverse read indices.
@@ -30,7 +35,6 @@ The sample data file should contain three columns, sample IDs, forward read indi
 Then, execute the following command.
 ```
 # Perform demultiplexing
-. ./demultiplex_inner_index.sh ${SEQ_DIR} ${SEQ_FILE_R1} ${SEQ_FILE_R2} ${SAMPLE_DATA}
+. ./demultiplex_inner_index.sh ${SEQ_MODE} ${SAMPLE_DATA} ${OUTPUT_DIR} ${SEQ_DIR} ${SEQ_FILE_R1} ${SEQ_FILE_R2}
+${SAMPLE_DATA}
 ```
-
-By default, demultiplexed FASTQ files will be in `demultiplex_Out` folder. The name of the output folder may be changed by specifying a fifth argument.
