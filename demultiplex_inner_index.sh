@@ -5,18 +5,18 @@
 
 #---------------------------------------------------#
 # REQUIRED: seqkit (https://bioinf.shenwei.me/seqkit)
+# REQUIRED: fastp (https://github.com/OpenGene/fastp)
 #---------------------------------------------------#
 
 # For dev
-#SEQ_DIR=seqdata
+#SEQ_DIR=seqdata_SingleEnd
 #SEQ_FILE_R1=sample_fastq_R1.fastq.gz
 #SEQ_FILE_R2=sample_fastq_R2.fastq.gz
-#SAMPLE_DATA=sampledata/index_info.csv
-#OUTPUT_DIR=demultiplex_Out
+#SAMPLE_DATA=sampledata/index_info2.csv
+#OUTPUT_DIR=demultiplexSE_Out
 #OUTPUT_DIR=${5:-demultiplex_Out}
 #SEQ_MODE=SE_SingleID
 #SEQ_MODE=${6:-PE_DualID}
-
 
 # Define function
 function demultiplex_inner_index () {
@@ -70,6 +70,9 @@ function demultiplex_inner_index () {
   ### Extracting IDs
   echo "SEQ_MODE:" ${SEQ_MODE}
   echo -e "Extracting sequence IDs for each sample...\n"
+
+  ## (Quality filtering may not be necessary for dual-unique index)
+  
   #### Set counter to exclude CSV header
   count=0
   while read row || [ -n "${row}" ]; do
@@ -78,16 +81,23 @@ function demultiplex_inner_index () {
       if [[ "$SEQ_MODE" == "PE_DualID" ]] || [[ "$SEQ_MODE" == "SE_DualID" ]]; then
         index1=$(echo ${row} | cut -d , -f 2)
         index2=$(echo ${row} | cut -d , -f 3)
-        seqkit grep --quiet -srip ^$index1 R1_index.fastq.gz -o ../02_Out/${sample_name}_R1_ID.fastq.gz
-        seqkit grep --quiet -srip ^$index2 R2_index.fastq.gz -o ../02_Out/${sample_name}_R2_ID.fastq.gz
+        seqkit grep --quiet -srip ^$index1 R1_index.fastq.gz -o ../02_Out/Raw_${sample_name}_R1_ID.fastq.gz
+        seqkit grep --quiet -srip ^$index2 R2_index.fastq.gz -o ../02_Out/Raw_${sample_name}_R2_ID.fastq.gz
+        fastp -G -A -L -q 15 -u 37 --in1 ../02_Out/Raw_${sample_name}_R1_ID.fastq.gz --out1 ../02_Out/${sample_name}_R1_ID.fastq.gz
+        fastp -G -A -L -q 15 -u 37 --in1 ../02_Out/Raw_${sample_name}_R2_ID.fastq.gz --out1 ../02_Out/${sample_name}_R2_ID.fastq.gz
       elif  [[ "$SEQ_MODE" == "PE_SingleID" ]] || [[ "$SEQ_MODE" == "SE_SingleID" ]]; then
         index1=$(echo ${row} | cut -d , -f 2)
-        seqkit grep --quiet -srip ^$index1 R1_index.fastq.gz -o ../02_Out/${sample_name}_R1_ID.fastq.gz
+        seqkit grep --quiet -srip ^$index1 R1_index.fastq.gz -o ../02_Out/Raw_${sample_name}_R1_ID.fastq.gz
+        fastp -G -A -L -q 15 -u 37 --in1 ../02_Out/Raw_${sample_name}_R1_ID.fastq.gz --out1 ../02_Out/${sample_name}_R1_ID.fastq.gz
       fi
     fi
     count=`expr $count + 1`
   done < ../../${SAMPLE_DATA}
 
+  # Delete reports and Raw index files
+  rm ../02_Out/Raw_*
+  rm *.html
+  rm *.json
 
   # ------------------------------------------------------------------------------------- #
   # Step 2. Get common IDs of R1 and R2 reads
@@ -96,22 +106,17 @@ function demultiplex_inner_index () {
   cd ../02_Out
   mkdir ../03_Out
   
-  ## (One may perform quality filteirng of the ID sequences here using e.g., fastp)
-  ## (Quality filtering may not be necessary for dual-unique index)
-  
   ## Extract sequence IDs
   if [[ "$SEQ_MODE" == "PE_DualID" ]] || [[ "$SEQ_MODE" == "SE_DualID" ]]; then
-    echo "SEQ_MODE:" ${SEQ_MODE}
+    echo -e "\nSEQ_MODE:" ${SEQ_MODE}
     echo -e "Extracting common sequence IDs of read 1 and read 2..."
-    echo -e "(Quality filteirng of index sequences is not performed, but may be added here using e.g., fastp)"
     echo -e "(Quality filtering may not be necessary for dual-unique index)\n"
     for file in *_R1_ID.fastq.gz; do
       seqkit grep --quiet -f <(seqkit seq -ni ${file}) ${file%_R1_ID.fastq.gz}_R2_ID.fastq.gz | seqkit seq -ni > ../03_Out/${file%_R1_ID.fastq.gz}_common_ID.txt
     done
   elif  [[ "$SEQ_MODE" == "PE_SingleID" ]] || [[ "$SEQ_MODE" == "SE_SingleID" ]]; then
-    echo "SEQ_MODE:" ${SEQ_MODE}
+    echo -e "\nSEQ_MODE:" ${SEQ_MODE}
     echo -e "Extracting sequence IDs of read 1..."
-    echo -e "(Quality filteirng of index sequences is not performed, but may be added here using e.g., fastp)\n"
     for file in *_R1_ID.fastq.gz; do
       seqkit seq -ni ${file} > ../03_Out/${file%_R1_ID.fastq.gz}_common_ID.txt
     done
@@ -134,6 +139,7 @@ function demultiplex_inner_index () {
     echo "(Index sequences are trimmed at this step...)"
     echo -e "(This step may take time...)\n"
     for file in *_common_ID.txt; do
+      echo -e "Demultiplexing" ${file%_common_ID.txt} "...\n"
       seqkit grep --quiet -f ${file} ../../${SEQ_DIR}/${SEQ_FILE_R1} | seqkit subseq -r 9:-1 | gzip -c > ../04_Out/${file%_common_ID.txt}_R1.fastq.gz
       seqkit grep --quiet -f ${file} ../../${SEQ_DIR}/${SEQ_FILE_R2} | seqkit subseq -r 9:-1 | gzip -c > ../04_Out/${file%_common_ID.txt}_R2.fastq.gz
     done
@@ -143,6 +149,7 @@ function demultiplex_inner_index () {
     echo "(Index sequences are trimmed at this step...)"
     echo -e "(This step may take time...)\n"
     for file in *_common_ID.txt; do
+      echo -e "Demultiplexing" ${file%_common_ID.txt} "...\n"
       seqkit grep --quiet -f ${file} ../../${SEQ_DIR}/${SEQ_FILE_R1} | seqkit subseq -r 9:-1 | gzip -c > ../04_Out/${file%_common_ID.txt}_R1.fastq.gz
     done
   fi
